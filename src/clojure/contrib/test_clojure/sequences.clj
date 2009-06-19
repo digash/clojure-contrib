@@ -663,6 +663,22 @@
     (partition -1 [1 2 3]) ()
     (partition -2 [1 2 3]) () ))
 
+(deftest test-partition-with-pad
+  (are (= _1 _2)
+       (partition 3 3 "pad" "coll")    [[\c \o \l] [\l \p \a]]
+       (partition -3 3 "pad" "coll")   [[]]
+       (partition 3 3 nil [1 2 3 4 5]) [[1 2 3] [4 5]]
+       (partition 3 3 [] [1 2 3 4 5])  [[1 2 3] [4 5]]
+
+       (partition 3 3 [:a :b :c] [1 2 3 4 5])   [[1 2 3] [4 5 :a]]
+       (partition 3 3 [:a :b :c] [1 2 3 4 5 6]) [[1 2 3] [4 5 6]]
+       (partition 4 5 [:a :b] [1 2 3 4 5 6])    [[1 2 3 4] [6 :a :b]]
+       (partition 6 2 [:a :b] [1 2 3 4 5 6])    [[1 2 3 4 5 6] [3 4 5 6 :a :b]]
+
+       (partition 3 3 (repeat nil) [1 2 3 4])                       [[1 2 3] [4 nil nil]]
+       (partition 4 5 (cycle [:a :b]) [1 2 3 4 5 6])                [[1 2 3 4] [6 :a :b :a]]
+       (for [[a b c] (partition 3 3 (repeat 0) [1 2 3 4])] [a b c]) [[1 2 3] [4 0 0]]
+       (map second (partition 2 3 (repeat 0) [1 2 3 4]))            [2 0]))
 
 (deftest test-reverse
   (are (= _1 _2)
