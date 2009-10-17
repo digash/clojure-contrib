@@ -1,7 +1,7 @@
-;;; str_utils2.clj -- experimental new string utilities for Clojure
+;;; str_utils2.clj -- functional string utilities for Clojure
 
 ;; by Stuart Sierra, http://stuartsierra.com/
-;; June 4, 2009
+;; August 19, 2009
 
 ;; Copyright (c) Stuart Sierra, 2009. All rights reserved.  The use
 ;; and distribution terms for this software are covered by the Eclipse
@@ -29,8 +29,8 @@
     Some ideas are borrowed from
     http://github.com/francoisdevlin/devlinsf-clojure-utils/"}
  clojure.contrib.str-utils2
- (:refer-clojure :exclude (take replace drop butlast partition contains? get))
- (:require [clojure.contrib.java-utils :as j])
+ (:refer-clojure :exclude (take replace drop butlast partition
+                           contains? get repeat reverse partial))
  (:import (java.util.regex Pattern)))
 
 
@@ -87,13 +87,14 @@
                   (cons (int c) (thisfn s (inc i)))))))]
     (lazy-seq (f s 0))))
 
-(defn escape
-  "Escapes characters in string according to a cmap, a function or map
-  from characters to their replacements."
+(defn #^String escape
+  "Returns a new String by applying cmap (a function or a map) to each
+   character in s.  If cmap returns nil, the original character is
+   added to the output unchanged."
   [#^String s cmap]
   (let [buffer (StringBuilder. (.length s))]
     (dochars [c s]
-      (if-let [r (cmap s)]
+      (if-let [r (cmap c)]
         (.append buffer r)
         (.append buffer c)))
     (.toString buffer)))
@@ -103,34 +104,54 @@
   [#^String s]
   (every? (fn [#^Character c] (Character/isWhitespace c)) s))
 
-(defn take
-  "Take first n characters from s, up to the length of s."
+(defn #^String take
+  "Take first n characters from s, up to the length of s.
+
+  Note the argument order is the opposite of clojure.core/take; this
+  is to keep the string as the first argument for use with ->"
   [#^String s n]
   (if (< (count s) n)
     s
     (.substring s 0 n)))
 
-(defn drop [#^String s n]
+(defn #^String drop
   "Drops first n characters from s.  Returns an empty string if n is
-  greater than the length of s."
+  greater than the length of s.
+
+  Note the argument order is the opposite of clojure.core/drop; this
+  is to keep the string as the first argument for use with ->"
+  [#^String s n]
   (if (< (count s) n)
     ""
     (.substring s n)))
 
-(defn butlast
+(defn #^String butlast
   "Returns s without the last n characters.  Returns an empty string
-  if n is greater than the length of s."
+  if n is greater than the length of s.
+
+  Note the argument order is the opposite of clojure.core/butlast;
+  this is to keep the string as the first argument for use with ->"
   [#^String s n]
   (if (< (count s) n)
     ""
     (.substring s 0 (- (count s) n))))
 
-(defn tail
+(defn #^String tail
   "Returns the last n characters of s."
   [#^String s n]
   (if (< (count s) n)
     s
     (.substring s (- (count s) n))))
+
+(defn #^String repeat
+  "Returns a new String containing s repeated n times."
+  [#^String s n]
+  (apply str (clojure.core/repeat n s)))
+
+(defn #^String reverse
+  "Returns s with its characters reversed."
+  [#^String s]
+  (.toString (.reverse (StringBuilder. s))))
 
 (defmulti
   #^{:doc "Replaces all instances of pattern in string with replacement.  
@@ -143,7 +164,8 @@
    4. regex Pattern and function
       (Calls function with re-groups of each match, uses return 
        value as replacement.)"
-     :arglists '([string pattern replacement])}
+     :arglists '([string pattern replacement])
+     :tag String}
   replace
   (fn [#^String string pattern replacement]
     [(class pattern) (class replacement)]))
@@ -176,7 +198,8 @@
       (Uses java.util.regex.Matcher.replaceAll)
    3. regex Pattern and function
 "
-     :arglists '([s pattern replacement])}
+     :arglists '([s pattern replacement])
+     :tag String}
   replace-first
   (fn [s pattern replacement]
     [(class pattern) (class replacement)]))
@@ -217,35 +240,63 @@
             (list (.subSequence s prevend (.length s)))))))
      0)))
 
-(defn join
+(defn #^String join
   "Returns a string of all elements in coll, separated by
   separator.  Like Perl's join."
   [#^String separator coll]
   (apply str (interpose separator coll)))
 
-(defn chop
-  "Removes the last character of string."
+(defn #^String chop
+  "Removes the last character of string, does nothing on a zero-length
+  string."
   [#^String s]
-  (subs s 0 (dec (count s))))
+  (let [size (count s)]
+    (if (zero? size)
+      s
+      (subs s 0 (dec (count s))))))
 
-(defn chomp
+(defn #^String chomp
   "Removes all trailing newline \\n or return \\r characters from
   string.  Note: String.trim() is similar and faster."
   [#^String s]
   (replace s #"[\r\n]+$" ""))
 
 (defn title-case [#^String s]
-  (throw (IllegalStateException. "title-case not implemented yet.")))
+  (throw (Exception. "title-case not implemeted yet")))
 
-(defn swap-case [#^String s]
-  (throw (IllegalStateException. "swap-case not implemented yet.")))
+(defn #^String swap-case
+  "Changes upper case characters to lower case and vice-versa.
+  Handles Unicode supplementary characters correctly.  Uses the
+  locale-sensitive String.toUpperCase() and String.toLowerCase()
+  methods."
+  [#^String s]
+  (let [buffer (StringBuilder. (.length s))
+        ;; array to make a String from one code point
+        #^"[I" array (make-array Integer/TYPE 1)]
+    (docodepoints [c s]
+      (aset-int array 0 c)
+      (if (Character/isLowerCase c)
+        ;; Character.toUpperCase is not locale-sensitive, but
+        ;; String.toUpperCase is; so we use a String.
+        (.append buffer (.toUpperCase (String. array 0 1)))
+        (.append buffer (.toLowerCase (String. array 0 1)))))
+    (.toString buffer)))
 
-(defn ltrim
+(defn #^String capitalize
+  "Converts first character of the string to upper-case, all other
+  characters to lower-case."
+  [#^String s]
+  (if (< (count s) 2)
+    (.toUpperCase s)
+    (str (.toUpperCase #^String (subs s 0 1))
+         (.toLowerCase #^String (subs s 1)))))
+
+(defn #^String ltrim
   "Removes whitespace from the left side of string."
   [#^String s]
   (replace s #"^\s+" ""))
 
-(defn rtrim
+(defn #^String rtrim
   "Removes whitespace from the right side of string."
   [#^String s]
   (replace s #"\s+$" ""))
@@ -255,6 +306,33 @@
   [#^String s]
   (seq (.split #"\r?\n" s)))
 
+;; borrowed from compojure.str-utils, by James Reeves, EPL 1.0
+(defn #^String map-str
+  "Apply f to each element of coll, concatenate all results into a
+  String."
+  [f coll]
+  (apply str (map f coll)))
+
+;; borrowed from compojure.str-utils, by James Reeves, EPL 1.0
+(defn grep
+  "Filters elements of coll by a regular expression.  The String
+  representation (with str) of each element is tested with re-find."
+  [re coll]
+  (filter (fn [x] (re-find re (str x))) coll))
+
+(defn partial
+  "Like clojure.core/partial for functions that take their primary
+  argument first.
+
+  Takes a function f and its arguments, NOT INCLUDING the first
+  argument.  Returns a new function whose first argument will be the
+  first argument to f.
+
+  Example: (str-utils2/partial str-utils2/take 2)
+           ;;=> (fn [s] (str-utils2/take s 2))"
+  [f & args]
+  (fn [s & more] (apply f s (concat args more))))
+
 
 ;;; WRAPPERS
 
@@ -262,12 +340,12 @@
 ;; functions.  They are included here for completeness, and for use
 ;; when mapping over a collection of strings.
 
-(defn upper-case
+(defn #^String upper-case
   "Converts string to all upper-case."
   [#^String s]
   (.toUpperCase s))
 
-(defn lower-case
+(defn #^String lower-case
   "Converts string to all lower-case."
   [#^String s]
   (.toLowerCase s))
@@ -278,17 +356,17 @@
   ([#^String s #^Pattern re] (seq (.split re s)))
   ([#^String s #^Pattern re limit] (seq (.split re s limit))))
 
-(defn trim
+(defn #^String trim
   "Removes whitespace from both ends of string."
   [#^String s]
   (.trim s))
 
-(defn contains?
+(defn #^String contains?
   "True if s contains the substring."
   [#^String s substring]
   (.contains s substring))
 
-(defn get
+(defn #^String get
   "Gets the i'th character in string."
   [#^String s i]
   (.charAt s i))

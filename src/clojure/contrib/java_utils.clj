@@ -55,7 +55,7 @@
    let me (Stu) and the Clojure community know via the mailing list.
 "}
   clojure.contrib.java-utils
-  (:import [java.io File]
+  (:import [java.io File FileOutputStream]
 	   [java.util Properties]
            [java.net URI URL]))
 
@@ -64,37 +64,55 @@
    Building block for clojure.contrib.java-utils/file."
   class)
 
-(defmethod relative-path-string String [s]
+(defmethod relative-path-string String [#^String s]
   (relative-path-string (File. s)))
 
-(defmethod relative-path-string File [f]
+(defmethod relative-path-string File [#^File f]
   (if (.isAbsolute f)
     (throw (IllegalArgumentException. (str f " is not a relative path")))
     (.getPath f)))
 
-(defmulti as-file 
+(defmulti #^File as-file 
   "Interpret a String or a java.io.File as a File. Building block
    for clojure.contrib.java-utils/file, which you should prefer
    in most cases."
   class)
-(defmethod as-file String [s] (File. s))
+(defmethod as-file String [#^String s] (File. s))
 (defmethod as-file File [f] f)
 
-(defn file
+(defn #^File file
   "Returns a java.io.File from string or file args."
   ([arg]                      
      (as-file arg))
   ([parent child]             
-     (File. (as-file parent) (relative-path-string child)))
+     (File. #^File (as-file parent) #^String (relative-path-string child)))
   ([parent child & more]
      (reduce file (file parent child) more)))
 
 (defn as-str
-  "Returns the name or string representation of x"
-  [x]
-  (if (instance? clojure.lang.Named x)
-    (name x)
-    (str x)))
+  "Like clojure.core/str, but if an argument is a keyword or symbol,
+  its name will be used instead of its literal representation.
+
+  Example:
+     (str :foo :bar)     ;;=> \":foo:bar\"
+     (as-str :foo :bar)  ;;=> \"foobar\" 
+
+  Note that this does not apply to keywords or symbols nested within
+  data structures; they will be rendered as with str.
+
+  Example:
+     (str {:foo :bar})     ;;=> \"{:foo :bar}\"
+     (as-str {:foo :bar})  ;;=> \"{:foo :bar}\" "
+  ([] "")
+  ([x] (if (instance? clojure.lang.Named x)
+         (name x)
+         (str x)))
+  ([x & ys]
+     ((fn [#^StringBuilder sb more]
+        (if more
+          (recur (. sb  (append (as-str (first more)))) (next more))
+          (str sb)))
+      (new StringBuilder #^String (as-str x)) ys)))
 
 (defn get-system-property 
   "Get a system property."
@@ -131,7 +149,7 @@
 
 
 ; Not there is no corresponding props->map. Just destructure!
-(defn as-properties
+(defn #^Properties as-properties
   "Convert any seq of pairs to a java.utils.Properties instance.
    Uses as-str to convert both keys and values into strings."
   {:tag Properties}
@@ -153,9 +171,9 @@
   {:tag Properties}
   ([m file-able] (write-properties m file-able nil))
   ([m file-able comments]
-    (with-open [f (java.io.FileOutputStream. (file file-able))]
+    (with-open [#^FileOutputStream f (FileOutputStream. (file file-able))]
       (doto (as-properties m)
-        (.store f comments)))))
+        (.store f #^String comments)))))
 
 (defmulti
   #^{:doc "Coerces argument (URL, URI, or String) to a java.net.URL."
@@ -168,3 +186,4 @@
 
 (defmethod as-url String [#^String x] (URL. x))
 
+(defmethod as-url File [#^File x] (.toURL x))
