@@ -1,66 +1,99 @@
-Clojure-contrib
----------------
+= Clojure-contrib =
 
 The user contributions library, clojure.contrib, is a collection of
 namespaces each of which implements features that we believe may be
-useful to a large part of the clojure community.
+useful to a large part of the Clojure community.
 
-Clojure-contrib is open source under the Eclipse Public License and is 
+Clojure-contrib is open source under the Eclipse Public License and is
 copyrighted by Rich Hickey and the various contributors.
 
-The official source repository for clojure-contrib is 
-http://github.com/richhickey/clojure-contrib.
+Download releases from
+http://code.google.com/p/clojure-contrib/downloads
 
-Issues are maintained in the Assembla space at http://www.assembla.com/spaces/dashboard/index/clojure-contrib
+The official source repository for clojure-contrib is
+http://github.com/richhickey/clojure-contrib
 
-For the latest documentation of the capabilities and APIs available 
-in clojure-contrib, please see http://richhickey.github.com/clojure-contrib/
+Documentation and APIs are available at
+http://richhickey.github.com/clojure-contrib/
 
-General discussion occurs in the Clojure Google group (http://groups.google.com/group/clojure )
-and developer discussions are in the Clojure Dev Google group 
-(http://groups.google.com/group/clojure-dev ).
+Issues are maintained in the Assembla space at
+http://www.assembla.com/spaces/clojure-contrib
 
+General discussion occurs in the Clojure Google group at
+http://groups.google.com/group/clojure
+and developer discussions are in the Clojure Dev Google group at
+http://groups.google.com/group/clojure-dev
 
-Building Clojure-contrib
-------------------------
-
-To build clojure-contrib, download the files or clone the git repository.
-
-This library, clojure-contrib, has a dependency on Clojure: the clojure-lang
-JAR file. This is needed to compile the Clojure classes. Normally, it is specified
-using -Dclojure.jar=<path>.
-
-The build works as follows:
-
-ant -Dclojure.jar=<path>
-
-This will produce a clojure-contrib.jar file that you can add to your classpath.
-
-The nightly-build and stable-build targets are intended for use on the
-Tapestry360 continuous integration server (http://tapestry.formos.com/bamboo ).
-They require the presense of the Maven Ant Tasks in the Ant lib folder.
+Compiled JARs of development snapshots are available at
+http://build.clojure.org/
 
 
-Clojure-contrib Versions
-------------------------
 
-There are currently two versions of clojure-contrib, stored in separate
-branches on github.
+= Building Clojure-contrib =
 
-The master branch represents the latest and greatest contrib code and
-is tied to the master branch of clojure (http://github.com/richhickey/clojure ).
-If you're using this branch, you'll want to be sure to keep your clojure
-and clojure-contrib code in sync, though breaking changes between them
-are pretty rare in practice.
+If you downloaded a release distribution or pre-compiled JAR, you
+don't need to do anything.
 
-The clojure-1.0-compatible branch is designed to stay compatible with
-clojure release 1.0. New contrib features may be added to this branch, at
-the discretion of the contributors, but not necessarily. If you wish to 
-stay on a "standard release" of clojure, this is the branch for you. 
+If you downloaded the sources from Github, you will need Apache Maven
+(2.0 or higher) to run the build.  See http://maven.apache.org/
+
+Run the following command in this directory:
+
+    mvn package
+
+This will produce the file target/clojure-contrib-${VERSION}.jar that
+you can add to your Java classpath.
+
+Additional build commands are available:
+
+    mvn clojure:repl
+    To start a Clojure REPL (Read-Eval-Print Loop)
+
+    mvn compile
+    To compile sources without building a JAR
+
+    mvn test
+    To run unit tests
+
+    mvn assembly:assembly
+    To build ZIP/tar distributions containing source and JARs
+
+To skip the testing phase when building, add "-Dmaven.test.skip=true"
+to the mvn command line.
 
 
-Clojure-contrib Committers
---------------------------
+
+== Compiling with Local clojure.jar ==
+
+If you want to compile/build with a customized clojure.jar file, use
+the following command:
+
+    mvn package -Dclojure.jar=/path/to/clojure.jar
+
+The /path/to/clojure.jar MUST be an absolute path.  
+
+Maven will still download other dependencices,
+such as clojure-maven-plugin.
+
+
+
+= Clojure-contrib Versions =
+
+Versions of clojure-contrib are matched to versions of Clojure.
+
+If you are using Clojure 1.0, use clojure-contrib 1.0.*
+
+If you are using Clojure 1.1, use clojure-contrib 1.1.*
+
+If you are using Clojure from the "master" branch on Github, use
+clojure-contrib from the "master" branch on Github.
+
+If you are using Clojure from the "new" branch on Github, use
+clojure-contrib from the "new" branch on Github.
+
+
+
+= Clojure-contrib Committers =
 
 The following people are committers to the official clojure-contrib
 repositiory:
@@ -70,7 +103,7 @@ Stephen Gilardi
 Christophe Grand
 Rich Hickey
 Konrad Hinsen
-Stuart Holloway 
+Stuart Holloway
 Chris Houser
 David Miller
 Stuart Sierra
